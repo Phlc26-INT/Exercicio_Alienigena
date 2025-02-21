@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo do Alienígena</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style> 
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // Definimos uma constante para as dimensões da tela do jogo, para não precisar lembrar do valor quando formos definir em algum outro asset.
+        const larguraJogo = 1920
+        const alturaJogo = 865;
+
+        // Aqui estamos definindo as configurações do jogo: altura e largura da tela, e também a física do jogo.
+        const config = {
+            type: Phaser.AUTO,
+            width: larguraJogo,
+            height: alturaJogo,
+
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 300 },
+                    debug: true   
+                }
+
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        //Aqui o jogo é iniciado e definimos as variáveis do jogo.
+        const game = new Phaser.Game(config);
+        var alien;
+        var teclado;
+        var fogo;
+        var plataforma;
+        var plataformaVoadora;
+        var moeda;
+        var pontuacao = 0;
+        var placar;
+        
+        //Nesse bloco iremos carregar os assets
+        function preload() {
+            this.load.image('background', 'assets/bg.png');
+            this.load.image('alien', 'assets/alienigena.png');
+            this.load.image('heart', 'assets/coracao.png');
+            this.load.image('coin', 'assets/moeda.png');
+            this.load.image('brick', 'assets/tijolos.png');
+            this.load.image('turbo', 'assets/turbo.png');
+        }
+
+        function create() {
+            // Aqui o background é inserido proporcionalmente ao tamanho do cenário do jogo.
+            this.add.image(larguraJogo/2, alturaJogo/2, 'background'); 
+            this.add.image(larguraJogo/8.3, alturaJogo/2, 'background').setFlip(true);  
+            this.add.image(larguraJogo/1.15, alturaJogo/2, 'background').setFlip(true); 
+            fogo = this.add.sprite(0,0, 'turbo').setVisible(false);
+            //Aqui vamos definir o nosso sprite do alien e colocar sua colisão com a tela do jogo 
+            alien = this.physics.add.sprite(larguraJogo/2, 10, 'alien');
+            alien.setCollideWorldBounds(true);
+
+            //Aqui estamos colocando uma linha de código para receber inputs do teclado
+            teclado = this.input.keyboard.createCursorKeys();
+            
+            // Criando a plataforma voadora
+            plataformaVoadora = this.physics.add.sprite(larguraJogo/2, alturaJogo/2, 'brick');
+            plataformaVoadora.setImmovable(true); // Torna a plataforma imóvel ao colidir
+            plataformaVoadora.body.allowGravity = false; // Remove a gravidade da plataforma
+
+            //Nesse bloco iremos implementar a moeda, sua hitbox e o efeito de bounce com os tijolos(rebater na plataforma)
+            moeda = this.physics.add.sprite(larguraJogo/2, 0, 'coin');
+            moeda.setCollideWorldBounds(true);
+            moeda.setBounce(0.7);
+            this.physics.add.collider(moeda, plataforma);
+
+            //Essa linha adiciona o placar
+            placar = this.add.text(50, 50, 'Moedas:'+ pontuacao, {fontSize:'45px', fill:'#495613'});
+            pontuacao = 0;
+            //Esse bloco define uma função para quando a hitbox do alien encostar na moeda ela vai para um local aleatório do mapa e acrescenta 1 ponto no placar
+            this.physics.add.overlap(alien, moeda, function(){
+                moeda.setVisible(false);
+                var posicaoMoeda_Y = Phaser.Math.RND.between(50, 650);
+                moeda.setPosition(posicaoMoeda_Y, 100);
+                placar.setText('Moedas:' + pontuacao); 
+                moeda.setVisible(true); 
+                pontuacao +=1;
+            });
+            
+            // Adiciona colisão entre o alien e a plataforma
+            this.physics.add.collider(alien, plataformaVoadora);
+        }
+
+        //Aqui são as funcões para ativar e desativar o turbo (tornar visível)
+        function turbo(){
+            fogo.setVisible(true);
+            
+        }
+        function notTurbo(){
+            fogo.setVisible(false);
+        }
+        
+        function update() {
+            //Todo esse bloco de condicionais é para definir a movimentação do alien de acordo com o input do teclado
+            if (teclado.left.isDown) {
+                alien.setVelocityX(-250); } 
+          
+            else if (teclado.right.isDown) {
+                alien.setVelocityX(250); } 
+
+            else { 
+                alien.setVelocityX(0); 
+            }
+
+            if (teclado.up.isDown) {
+                alien.setVelocityY(-250);
+                turbo(); //Aqui o turbo é ativado
+            
+            } 
+            else{
+                notTurbo(); // Aqui o turbo desativa
+            }
+            // Aqui ajustamos a posição do fogo em relação ao alien
+            fogo.setPosition(alien.x,alien.y  + alien.height/2);
+            
+            // Aqui temos o movimento da plataforma voadora
+
+            plataformaVoadora.x += 2; // Essa linha move a plataforma para a direita
+            // Essa condição faz a plataforma voltar quando atingir o limite da tela
+            if (plataformaVoadora.x > larguraJogo) {
+                plataformaVoadora.x = 0;
+            }
+        }
+    </script>
+</body>
+</html>
